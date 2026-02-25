@@ -28,7 +28,7 @@ module spi_master_controller
     input  logic                   [15:0] spi_dummy_rd,
     input  logic                   [15:0] spi_dummy_wr,
     input  logic                    [3:0] spi_csreg,
-    input  logic                          spi_swrst, //FIXME Not used at all
+    // input  logic                          spi_swrst, //FIXME Not used at all
     input  logic                          spi_rd,
     input  logic                          spi_wr,
     input  logic                          spi_qrd,
@@ -74,7 +74,7 @@ module spi_master_controller
 
   logic en_quad;
   logic en_quad_int;
-  logic do_tx; //FIXME NOT USED at all!!
+  // logic do_tx; //FIXME NOT USED at all!!
   logic do_rx;
 
   logic tx_done;
@@ -187,6 +187,8 @@ module spi_master_controller
               data_to_tx_valid = spi_ctrl_data_tx_valid;
               spi_ctrl_data_tx_ready = data_to_tx_ready;
           end
+
+          default: ;
       endcase
   end
 
@@ -219,7 +221,7 @@ module spi_master_controller
           if (spi_cmd_len != 0)
           begin
             s_spi_mode = (spi_qrd | spi_qwr) ? `SPI_QUAD_TX : `SPI_STD;
-            counter_tx       = {8'h0,spi_cmd_len};
+            counter_tx       = {10'h0,spi_cmd_len}; // spi_cmd_len is 6 bit, so fill 10 zeros
             counter_tx_valid = 1'b1;
             ctrl_data_mux    = DATA_CMD;
             ctrl_data_valid  = 1'b1;
@@ -229,7 +231,7 @@ module spi_master_controller
           else if (spi_addr_len != 0)
           begin
             s_spi_mode = (spi_qrd | spi_qwr) ? `SPI_QUAD_TX : `SPI_STD;
-            counter_tx       = {8'h0,spi_addr_len};
+            counter_tx       = {10'h0,spi_addr_len};
             counter_tx_valid = 1'b1;
             ctrl_data_mux    = DATA_ADDR;
             ctrl_data_valid  = 1'b1;
@@ -298,7 +300,7 @@ module spi_master_controller
           if (spi_addr_len != 0)
           begin
             s_spi_mode = (en_quad) ? `SPI_QUAD_TX : `SPI_STD;
-            counter_tx       = {8'h0,spi_addr_len};
+            counter_tx       = {10'h0,spi_addr_len};
             counter_tx_valid = 1'b1;
             ctrl_data_mux    = DATA_ADDR;
             ctrl_data_valid  = 1'b1;
@@ -511,6 +513,8 @@ module spi_master_controller
           state_next = WAIT_EDGE;
         end
       end
+
+      default: ;
     endcase
   end
 
@@ -522,7 +526,6 @@ module spi_master_controller
       state       <= IDLE;
       en_quad_int <= 1'b0;
       do_rx       <= 1'b0;
-      do_tx       <= 1'b0;
       spi_mode    <= `SPI_QUAD_RX;
     end
     else
@@ -537,17 +540,14 @@ module spi_master_controller
       if (spi_rd || spi_qrd)
       begin
         do_rx <= 1'b1;
-        do_tx <= 1'b0;
       end
       else if (spi_wr || spi_qwr)
       begin
         do_rx <= 1'b0;
-        do_tx <= 1'b1;
       end
       else if (state_next == IDLE)
       begin
         do_rx <= 1'b0;
-        do_tx <= 1'b0;
       end
     end
   end

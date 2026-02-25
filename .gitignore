@@ -1,0 +1,12 @@
+# Ignore Verilator build directory
+obj_dir/
+
+# Ignore waveform files
+*.vcd
+
+# Ignore any compiled executables
+*.exe
+*.o
+*.d
+
+gtkwave.gtkw
