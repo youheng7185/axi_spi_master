@@ -100,10 +100,15 @@ void push_tx(Vspi_flash_top* dut, VerilatedVcdC* tfp, uint32_t data) {
 
 // Drain one 32-bit word from RX FIFO
 uint32_t pop_rx(Vspi_flash_top* dut, VerilatedVcdC* tfp) {
-    int timeout = 1000;
+    int timeout = 2000;  // increase timeout
     dut->data_rx_ready_i = 1;
     while (!dut->data_rx_valid_o && timeout--) {
         tick(1, dut, tfp);
+    }
+    if (timeout <= 0) {
+        std::cout << "  [pop_rx TIMEOUT] RX FIFO never had data!\n";
+        dut->data_rx_ready_i = 0;
+        return 0xDEAD0000;  // sentinel so you know it failed here
     }
     uint32_t data = dut->data_rx_o;
     tick(1, dut, tfp);

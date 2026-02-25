@@ -491,7 +491,9 @@ module spi_master_controller
       begin
         spi_status[6] = 1'b1;
         spi_cs        = 1'b0;
-        spi_clock_en  = rx_clk_en;
+        // spi_clock_en  = rx_clk_en;
+        spi_clock_en = 1'b1;
+
         s_spi_mode    = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
 
         if (rx_done) begin

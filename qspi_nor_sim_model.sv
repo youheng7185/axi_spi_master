@@ -299,13 +299,8 @@ module qspi_nor_sim_model #(
     // -------------------------------------------------------------------------
     // MISO output — present bit on negedge so master samples on posedge
     // -------------------------------------------------------------------------
-    always_ff @(negedge sclk or posedge cs_n) begin
-        if (cs_n)
-            dq1_miso_o <= 1'b0;
-        else if (current_state == STATE_DATA_OUT)
-            dq1_miso_o <= shift_out[7];
-        else
-            dq1_miso_o <= 1'b0;
-    end
+    assign dq1_miso_o = (!cs_n && current_state == STATE_DATA_OUT) 
+                    ? shift_out[7] 
+                    : 1'b0;
 
 endmodule
