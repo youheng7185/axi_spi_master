@@ -352,6 +352,7 @@ module spi_master_controller
           end
           else
           begin
+            eot = 1'b1;
             state_next = IDLE;
           end
         end
@@ -414,6 +415,7 @@ module spi_master_controller
           end
           else
           begin
+            eot = 1'b1;
             state_next = IDLE;
           end
         end

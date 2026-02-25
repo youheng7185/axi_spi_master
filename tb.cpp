@@ -5,6 +5,7 @@
 #include <cstdint>
 
 void tick(int32_t tick_val, Vspi_master_controller *dut, VerilatedVcdC* tfp);
+void wait_eot(Vspi_master_controller* dut, VerilatedVcdC* tfp);
 
 int main(int argc, char **argv, char **env) {
     Verilated::commandArgs(argc, argv);
@@ -16,13 +17,78 @@ int main(int argc, char **argv, char **env) {
     dut->trace(tfp, 99);
     tfp->open("waveform.vcd");
 
-    tick(5, dut, tfp);
-    dut->rstn = 0;
+    dut->rstn                  = 0;
+    dut->spi_clk_div           = 0;
+    dut->spi_clk_div_valid     = 0;
+    dut->spi_cmd               = 0;
+    dut->spi_cmd_len           = 0;
+    dut->spi_addr              = 0;
+    dut->spi_addr_len          = 0;
+    dut->spi_data_len          = 0;
+    dut->spi_dummy_rd          = 0;
+    dut->spi_dummy_wr          = 0;
+    dut->spi_csreg             = 0;
+    dut->spi_rd                = 0;
+    dut->spi_wr                = 0;
+    dut->spi_qrd               = 0;
+    dut->spi_qwr               = 0;
+    dut->spi_ctrl_data_tx      = 0;
+    dut->spi_ctrl_data_tx_valid= 0;
+    dut->spi_ctrl_data_rx_ready= 1;
+    dut->spi_sdi0              = 0;
+    dut->spi_sdi1              = 0;
+    dut->spi_sdi2              = 0;
+    dut->spi_sdi3              = 0;
+
     tick(5, dut, tfp);
     dut->rstn = 1;
+    tick(5, dut, tfp);
 
-    tick(50, dut, tfp);
+    // Clock divider
+    dut->spi_clk_div = 4;
+    dut->spi_clk_div_valid = 1;
+    tick(1, dut, tfp);
+    dut->spi_clk_div_valid = 0;
+    tick(5, dut, tfp);
 
+    dut->spi_cmd = 0x9A000000;
+    dut->spi_cmd_len = 8;
+    dut->spi_data_len = 0;
+    dut->spi_addr_len = 0;
+    dut->spi_dummy_wr = 0;
+    dut->spi_csreg = 0b0001;
+
+    dut->spi_wr = 1;
+    tick(1, dut, tfp);
+    dut->spi_wr = 0;
+
+    wait_eot(dut, tfp);
+    std::cout << "TEST 1 done\n";
+    tick(10, dut, tfp);
+
+
+    tick(200, dut, tfp);
+
+    dut->spi_cmd      = 0x02000000;  // Write command, left aligned
+    dut->spi_cmd_len  = 8;
+    dut->spi_addr     = 0x12345600;  // Left aligned 24-bit addr
+    dut->spi_addr_len = 24;
+    dut->spi_data_len = 32;
+    dut->spi_dummy_wr = 0;
+    dut->spi_csreg    = 0b0001;
+    
+    dut->spi_ctrl_data_tx       = 0xDEADBEEF;
+    dut->spi_ctrl_data_tx_valid = 1;    
+
+    dut->spi_wr = 1;
+    tick(1, dut, tfp);
+    dut->spi_wr = 0;
+
+    wait_eot(dut, tfp);
+    dut->spi_ctrl_data_tx_valid = 0;
+
+    tick(200, dut, tfp);
+    
     // Finish
     dut->final();
     tfp->close();
@@ -42,4 +108,14 @@ void tick(int32_t tick_val, Vspi_master_controller *dut, VerilatedVcdC* tfp) {
         dut->eval();
         tfp->dump(sim_time++);
     }
+}
+
+
+void wait_eot(Vspi_master_controller* dut, VerilatedVcdC* tfp) {
+    int timeout = 10000;
+    while (!dut->eot && timeout--) {
+        tick(1, dut, tfp);
+    }
+    if (timeout <= 0) std::cout << "TIMEOUT waiting for eot!\n";
+    tick(4, dut, tfp);
 }
