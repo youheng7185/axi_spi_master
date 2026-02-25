@@ -85,11 +85,21 @@ module spi_flash_wrapper (
     assign spi_addr_len = has_addr_i ? 6'd24 : 6'd0;
 
     // Start trigger — only pass start_i to the correct mode signal
-    assign spi_rd  = (rd_wr_i  && data_mode_i == 2'b01) ? start_i : 1'b0;
-    assign spi_wr  = (!rd_wr_i && data_mode_i == 2'b01) ? start_i : 1'b0;
-    assign spi_qrd = (rd_wr_i  && data_mode_i == 2'b11) ? start_i : 1'b0;
-    assign spi_qwr = (!rd_wr_i && data_mode_i == 2'b11) ? start_i : 1'b0;
-
+    always_comb begin
+        spi_rd  = 1'b0;
+        spi_wr  = 1'b0;
+        spi_qrd = 1'b0;
+        spi_qwr = 1'b0;
+        if (start_i) begin
+            case (data_mode_i)
+                2'b00:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
+                2'b01:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
+                2'b11:  begin spi_qwr = !rd_wr_i; spi_qrd = rd_wr_i; end
+                default: ;
+            endcase
+        end
+    end
+    
     // -------------------------------------------------------------------------
     // Status / busy
     // -------------------------------------------------------------------------
@@ -178,6 +188,7 @@ module spi_flash_wrapper (
         .spi_clk_div      ({2'b00, prescaler_i}),
         .spi_clk_div_valid(start_i),  // only update divider when starting
 
+        /* verilator lint_off PINCONNECTEMPTY */
         .spi_status(),
 
         // CMD: 8 bits, left-aligned in 32-bit field
@@ -210,6 +221,7 @@ module spi_flash_wrapper (
 
         .spi_clk (spi_clk),
         .spi_csn0(spi_csn),
+        /* verilator lint_off PINCONNECTEMPTY */
         .spi_csn1(),
         .spi_csn2(),
         .spi_csn3(),

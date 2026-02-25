@@ -19,16 +19,16 @@ run_spi: build_spi
 # ---------------------------
 # Option 2: qspi_sim_top
 # ---------------------------
-TB_MODEL = tb_model.cpp
-TOP_SIM = qspi_sim_top
+TB_MODEL = tb_top.cpp
+TOP_SIM = spi_flash_top
 
 obj_dir/V$(TOP_SIM).mk: $(TOP_SIM).sv $(TB_MODEL)
 	verilator $(VERILATOR_FLAGS) --cc $(TOP_SIM).sv --exe $(TB_MODEL)
 
-build_sim: obj_dir/V$(TOP_SIM).mk
+build_model: obj_dir/V$(TOP_SIM).mk
 	make -j -C obj_dir -f V$(TOP_SIM).mk V$(TOP_SIM)
 
-run_model: build_sim
+run_model: build_model
 	./obj_dir/V$(TOP_SIM)
 
 # ---------------------------
@@ -37,4 +37,4 @@ run_model: build_sim
 clean:
 	rm -rf obj_dir *.vcd *.o *.d *.exe
 
-.PHONY: run_spi run_model build_spi build_sim clean
+.PHONY: run_spi run_model build_spi build_model clean

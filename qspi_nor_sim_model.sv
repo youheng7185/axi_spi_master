@@ -236,23 +236,26 @@ module qspi_nor_sim_model #(
 
                 // -----------------------------------------------------------------
                 STATE_DATA_OUT: begin
-                    // shift_out shifts on posedge; MISO samples on negedge
+                    // MISO block already presented shift_out[7] on negedge
+                    // Now on posedge: shift for next negedge presentation
                     if (bit_counter == 7) begin
                         bit_counter  <= 0;
                         byte_counter <= byte_counter + 1;
-                        // preload next byte
+                        // preload next byte — will be presented starting next negedge
                         case (command)
                             8'h9F:
                                 shift_out <= (byte_counter < 8'd19)
-                                           ? device_info[byte_counter + 1]
-                                           : 8'hFF;
+                                        ? device_info[byte_counter + 1]
+                                        : 8'hFF;
                             8'h03, 8'h0B:
                                 shift_out <= memory[(address + byte_counter + 1) % MEMORY_SIZE];
-                            8'h05: shift_out <= status_reg_1;   // re-read (continuous poll)
-                            default: shift_out <= 8'hFF;
+                            8'h05:
+                                shift_out <= status_reg_1;
+                            default:
+                                shift_out <= 8'hFF;
                         endcase
                     end else begin
-                        shift_out   <= {shift_out[6:0], 1'b0};
+                        shift_out   <= {shift_out[6:0], 1'b0};  // shift next bit to [7]
                         bit_counter <= bit_counter + 1;
                     end
                 end
