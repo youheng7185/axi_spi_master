@@ -136,4 +136,14 @@ module spi_master_fifo
 
     assign ready_o = ~full;
 
+    // debug
+    always_ff @(posedge clk_i) begin
+    if (valid_i && !full)
+        $display("[RXFIFO] wrote 0x%08h elements=%0d ready_o=%b", 
+                  data_i, elements+1, ~full);
+    if (ready_i && valid_o)
+        $display("[RXFIFO] read  0x%08h elements=%0d", 
+                  data_o, elements-1);
+    end
+
 endmodule

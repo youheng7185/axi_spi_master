@@ -84,6 +84,8 @@ module spi_master_rx
             data_int_next = {data_int[30:0],sdi0};
 
           if (rx_done) begin
+            $display("[RX] done data=0x%08h data_ready=%b", data_int_next, data_ready);
+            
             counter_next = 0;
             data_valid   = 1'b1;
 

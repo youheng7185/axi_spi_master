@@ -132,7 +132,7 @@ void default_inputs(Vspi_flash_top* dut) {
     dut->addr_i          = 0;
     dut->data_tx_i       = 0;
     dut->data_tx_valid_i = 0;
-    dut->data_rx_ready_i = 1;
+    dut->data_rx_ready_i = 0;
     dut->flush_tx_i      = 0;
     dut->flush_rx_i      = 0;
 }
@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
     dut->rstn = 0;
     tick(10, dut, tfp);
     dut->rstn = 1;
+    dut->data_rx_ready_i = 0;
     tick(10, dut, tfp);
 
     std::cout << "\n=== SPI Flash Top Testbench ===\n\n";
