@@ -66,9 +66,6 @@ int main(int argc, char **argv, char **env) {
     std::cout << "TEST 1 done\n";
     tick(10, dut, tfp);
 
-
-    tick(200, dut, tfp);
-
     dut->spi_cmd      = 0x02000000;  // Write command, left aligned
     dut->spi_cmd_len  = 8;
     dut->spi_addr     = 0x12345600;  // Left aligned 24-bit addr
@@ -88,7 +85,7 @@ int main(int argc, char **argv, char **env) {
     dut->spi_ctrl_data_tx_valid = 0;
 
     tick(200, dut, tfp);
-    
+
     // Finish
     dut->final();
     tfp->close();
@@ -113,9 +110,31 @@ void tick(int32_t tick_val, Vspi_master_controller *dut, VerilatedVcdC* tfp) {
 
 void wait_eot(Vspi_master_controller* dut, VerilatedVcdC* tfp) {
     int timeout = 10000;
-    while (!dut->eot && timeout--) {
-        tick(1, dut, tfp);
+    while (timeout--) {
+        // falling edge first
+        dut->clk = 0;
+        dut->eval();
+        tfp->dump(sim_time++);
+
+        // CHECK HERE - combinational outputs are valid,
+        // but rising edge hasn't fired yet so state is still
+        // in DATA_TX/CMD/ADDR, eot is still high
+        if (dut->eot) {
+            // complete the clock cycle cleanly
+            dut->clk = 1;
+            dut->eval();
+            tfp->dump(sim_time++);
+            std::cout << "EOT detected at t=" << sim_time << "\n";
+            break;
+        }
+
+        // rising edge
+        dut->clk = 1;
+        dut->eval();
+        tfp->dump(sim_time++);
     }
-    if (timeout <= 0) std::cout << "TIMEOUT waiting for eot!\n";
+    if (timeout <= 0)
+        std::cout << "TIMEOUT waiting for eot!\n";
+
     tick(4, dut, tfp);
 }
