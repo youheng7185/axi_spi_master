@@ -56,7 +56,7 @@ module spi_flash_wrapper (
     logic        eot;
     logic [1:0]  spi_mode;
 
-    logic        spi_rd, spi_wr, spi_qrd, spi_qwr;
+    logic        spi_rd, spi_wr, spi_qrd, spi_qwr, spi_drd;
 
     logic [31:0] ctrl_data_tx;
     logic        ctrl_data_tx_valid;
@@ -90,10 +90,12 @@ module spi_flash_wrapper (
         spi_wr  = 1'b0;
         spi_qrd = 1'b0;
         spi_qwr = 1'b0;
+        spi_drd = 1'b0;
         if (start_i) begin
             case (data_mode_i)
                 2'b00:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
                 2'b01:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
+                2'b10:  begin spi_drd = rd_wr_i;  spi_wr  = !rd_wr_i; end
                 2'b11:  begin spi_qwr = !rd_wr_i; spi_qrd = rd_wr_i; end
                 default: ;
             endcase
@@ -210,6 +212,7 @@ module spi_flash_wrapper (
         .spi_wr (spi_wr),
         .spi_qrd(spi_qrd),
         .spi_qwr(spi_qwr),
+        .spi_drd(spi_drd),
 
         .spi_ctrl_data_tx      (ctrl_data_tx),
         .spi_ctrl_data_tx_valid(ctrl_data_tx_valid),

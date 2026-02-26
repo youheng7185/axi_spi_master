@@ -38,8 +38,9 @@ module spi_master_rx
   logic        reg_done;
   enum logic [1:0] { IDLE, RECEIVE, WAIT_FIFO, WAIT_FIFO_DONE } rx_CS, rx_NS;
 
-
-  assign reg_done  = (!en_quad_in && (counter[4:0] == 5'b11111)) || (en_quad_in && (counter[2:0] == 3'b111));
+  assign reg_done = (en_quad_in                   && (counter[2:0] == 3'b111  ))
+                 || (!en_quad_in && en_dual_in     && (counter[3:0] == 4'b1111 ))
+                 || (!en_quad_in && !en_dual_in    && (counter[4:0] == 5'b11111));
 
   assign data = data_int_next;
   assign rx_done = done;
@@ -47,7 +48,9 @@ module spi_master_rx
   always_comb
   begin
     if (counter_in_upd)
-      counter_trgt_next = (en_quad_in) ? {2'b00,counter_in[15:2]} : counter_in;
+      counter_trgt_next = en_quad_in ? {2'b00, counter_in[15:2]}
+                  : en_dual_in ? {1'b0,  counter_in[15:1]}
+                  : counter_in;
     else
       counter_trgt_next = counter_trgt;
   end
@@ -79,9 +82,11 @@ module spi_master_rx
           counter_next = counter + 1;
 
           if (en_quad_in)
-            data_int_next = {data_int[27:0],sdi3,sdi2,sdi1,sdi0};
+              data_int_next = {data_int[27:0], sdi3, sdi2, sdi1, sdi0};
+          else if (en_dual_in)
+              data_int_next = {data_int[29:0], sdi1, sdi0};  // IO1=odd bits, IO0=even bits
           else
-            data_int_next = {data_int[30:0],sdi0};
+              data_int_next = {data_int[30:0], sdi0};
 
           if (rx_done) begin
             $display("[RX] done data=0x%08h data_ready=%b", data_int_next, data_ready);

@@ -11,6 +11,7 @@
 `define SPI_STD     2'b00
 `define SPI_QUAD_TX 2'b01
 `define SPI_QUAD_RX 2'b10
+`define SPI_DUAL_RX 2'b11 // specs only wants Read Dual Out, nothing else that requires Dual SPI
 
 module spi_master_controller
 (
@@ -33,6 +34,7 @@ module spi_master_controller
     input  logic                          spi_wr,
     input  logic                          spi_qrd,
     input  logic                          spi_qwr,
+    input  logic                          spi_drd, // spi dual read
     input  logic                   [31:0] spi_ctrl_data_tx,
     input  logic                          spi_ctrl_data_tx_valid,
     output logic                          spi_ctrl_data_tx_ready,
@@ -74,6 +76,9 @@ module spi_master_controller
 
   logic en_quad;
   logic en_quad_int;
+  logic en_dual;
+  logic en_dual_int;
+  
   // logic do_tx; //FIXME NOT USED at all!!
   logic do_rx;
 
@@ -94,6 +99,7 @@ module spi_master_controller
   enum logic [4:0] {IDLE,CMD,ADDR,MODE,DUMMY,DATA_TX,DATA_RX,WAIT_EDGE} state,state_next;
 
   assign en_quad = spi_qrd | spi_qwr | en_quad_int;
+  assign en_dual = spi_drd | en_dual_int;
 
   spi_master_clkgen u_clkgen
   (
@@ -311,7 +317,9 @@ module spi_master_controller
           begin
             if (do_rx)
             begin
-              s_spi_mode = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
+              s_spi_mode = (en_quad) ? `SPI_QUAD_RX :
+                           (en_dual) ? `SPI_DUAL_RX :
+                             `SPI_STD;
               if(spi_dummy_rd != 0)
               begin
                 counter_tx       = en_quad ? {spi_dummy_rd[13:0],2'b00} : spi_dummy_rd;
@@ -330,7 +338,10 @@ module spi_master_controller
             end
             else
             begin
-              s_spi_mode = (en_quad) ? `SPI_QUAD_TX : `SPI_STD;
+              s_spi_mode = (en_quad) ? `SPI_QUAD_RX 
+                        : (en_dual) ? `SPI_DUAL_RX 
+                        :              `SPI_STD;  
+            
               if(spi_dummy_wr != 0)
               begin
                 counter_tx       = en_quad ? {spi_dummy_wr[13:0],2'b00} : spi_dummy_wr;
@@ -377,7 +388,9 @@ module spi_master_controller
           begin
             if (do_rx)
             begin
-              s_spi_mode = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
+              s_spi_mode = (en_quad) ? `SPI_QUAD_RX 
+                        : (en_dual) ? `SPI_DUAL_RX 
+                        :              `SPI_STD;
               if(spi_dummy_rd != 0)
               begin
                 counter_tx       = en_quad ? {spi_dummy_rd[13:0],2'b00} : spi_dummy_rd;
@@ -435,7 +448,10 @@ module spi_master_controller
         spi_status[4] = 1'b1;
         spi_cs        = 1'b0;
         spi_clock_en  = 1'b1;
-        s_spi_mode    = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
+        
+        s_spi_mode = (en_quad) ? `SPI_QUAD_RX 
+                  : (en_dual) ? `SPI_DUAL_RX 
+                  :              `SPI_STD;
 
         if (tx_done) begin
           if (spi_data_len != 0) begin
@@ -493,8 +509,9 @@ module spi_master_controller
         spi_cs        = 1'b0;
         spi_clock_en  = rx_clk_en;
         // spi_clock_en = 1'b1;
-
-        s_spi_mode    = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
+        s_spi_mode    = (en_quad) ? `SPI_QUAD_RX
+              : (en_dual) ? `SPI_DUAL_RX
+              :              `SPI_STD;
 
         if (rx_done) begin
           state_next = WAIT_EDGE;
@@ -508,7 +525,9 @@ module spi_master_controller
         spi_status[6] = 1'b1;
         spi_cs        = 1'b0;
         spi_clock_en  = 1'b0;
-        s_spi_mode    = (en_quad) ? `SPI_QUAD_RX : `SPI_STD;
+        s_spi_mode    = (en_quad) ? `SPI_QUAD_RX
+              : (en_dual) ? `SPI_DUAL_RX
+              :              `SPI_STD;
 
         if (spi_fall) begin
           eot        = 1'b1;
@@ -529,6 +548,7 @@ module spi_master_controller
     begin
       state       <= IDLE;
       en_quad_int <= 1'b0;
+      en_dual_int <= 1'b0;
       do_rx       <= 1'b0;
       spi_mode    <= `SPI_QUAD_RX;
     end
@@ -541,7 +561,12 @@ module spi_master_controller
       else if (state_next == IDLE)
         en_quad_int <= 1'b0;
 
-      if (spi_rd || spi_qrd)
+      if (spi_drd)
+        en_dual_int <= 1'b1;
+      else if (state_next == IDLE)
+        en_dual_int <= 1'b0;
+
+      if (spi_rd || spi_qrd || spi_drd)
       begin
         do_rx <= 1'b1;
       end
