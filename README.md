@@ -1,3 +1,12 @@
+# Modified to be my spi master to interact with qspi nor flash
+
+check testbench
+
+```
+make clean
+make run_model
+```
+
 # AXI SPI Master
 
 This is an implementation of an SPI master that is controlled via an AXI bus.
