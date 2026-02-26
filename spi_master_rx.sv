@@ -20,6 +20,7 @@ module spi_master_rx
     input  logic        sdi2,
     input  logic        sdi3,
     input  logic        en_quad_in,
+    input  logic        en_dual_in,
     input  logic [15:0] counter_in,
     input  logic        counter_in_upd,
     output logic [31:0] data,

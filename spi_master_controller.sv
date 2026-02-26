@@ -145,6 +145,7 @@ module spi_master_controller
     .sdi2           ( spi_sdi2               ),
     .sdi3           ( spi_sdi3               ),
     .en_quad_in     ( en_quad                ),
+    .en_dual_in     ( en_dual                ),
     .counter_in     ( counter_rx             ),
     .counter_in_upd ( counter_rx_valid       ),
     .data           ( spi_ctrl_data_rx       ),
