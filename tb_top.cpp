@@ -594,6 +594,52 @@ int main(int argc, char **argv) {
               << test_pass << " passed, "
               << test_fail << " failed ===\n";
 
+    // // TEST: Quad Page Program (0x32) at 0x000100
+    default_inputs(dut);
+    //dut->command_i    = 0x32;
+    dut->command_i    = 0x32;
+    dut->data_mode_i  = 0b11;   // quad
+    dut->rd_wr_i      = 0;
+    dut->has_addr_i   = 1;
+    dut->addr_i       = 0x00000000;
+    dut->data_count_i = 3;
+    push_tx(dut, tfp, 0x12345678);
+    start_transfer(dut, tfp);
+    wait_status(dut, tfp);
+    clear_status(dut, tfp);
+
+    // // TEST: Read Quad Output (0x6B) — cmd+addr single, data quad
+    // default_inputs(dut);
+    // dut->command_i     = 0x6B;
+    // dut->data_mode_i   = 0b11;   // quad
+    // dut->rd_wr_i       = 1;
+    // dut->has_addr_i    = 1;
+    // dut->addr_i        = 0x000100;
+    // dut->data_count_i  = 3;
+    // dut->dummy_cycle_i = 8;
+    // start_transfer(dut, tfp);
+    // wait_status(dut, tfp);
+    // tick(20, dut, tfp);
+    // uint32_t rd = pop_rx(dut, tfp);
+    // check("Quad read back", rd, 0x12345678);
+    // clear_status(dut, tfp);
+
+    // TEST: Read Dual Output (0x3B)
+    // default_inputs(dut);
+    // dut->command_i     = 0x3B;
+    // dut->data_mode_i   = 0b10;   // dual
+    // dut->rd_wr_i       = 1;
+    // dut->has_addr_i    = 1;
+    // dut->addr_i        = 0x000000;
+    // dut->data_count_i  = 3;
+    // dut->dummy_cycle_i = 8;
+    // start_transfer(dut, tfp);
+    // wait_status(dut, tfp);
+    // tick(20, dut, tfp);
+    // uint32_t rd2 = pop_rx(dut, tfp);
+    // check("Dual read back", rd2, 0xDEADBEEF);  // written in TEST 6
+    // clear_status(dut, tfp);
+
     tick(20, dut, tfp);
     dut->final();
     tfp->close();

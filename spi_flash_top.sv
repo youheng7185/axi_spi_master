@@ -100,30 +100,23 @@ module spi_flash_top #(
     // only sdo0→dq0 (MOSI) and dq1→sdi0 (MISO) used in standard SPI mode
     // sdo1/2/3 wired in for quad mode future use
     // -------------------------------------------------------------------------
-    qspi_nor_sim_model #(
-        .MEMORY_SIZE(MEMORY_SIZE),
-        .SECTOR_SIZE(SECTOR_SIZE),
-        .MFR_ID     (MFR_ID),
-        .DEVICE_ID  (DEVICE_ID)
-    ) u_flash (
-        .sclk       (spi_clk),
-        .cs_n       (spi_csn),
+    qspi_nor_sim_model u_flash (
+        .sclk   (spi_clk),
+        .cs_n   (spi_csn),
 
-        // MOSI: master out → flash in (dq0)
-        .dq0_mosi_i (spi_sdo0),
+        // inputs to flash (master drives these)
+        .dq0_i  (spi_sdo0),
+        .dq1_i  (spi_sdo1),
+        .dq2_i  (spi_sdo2),
+        .dq3_i  (spi_sdo3),
 
-        // MISO: flash out → master in (dq1)
-        .dq1_miso_o (spi_sdi0)
+        // outputs from flash (flash drives these during read)
+        .dq0_o  (spi_sdi1),
+        .dq1_o  (spi_sdi0),
+        .dq2_o  (spi_sdi2),
+        .dq3_o  (spi_sdi3),
 
-        // quad lines — not connected until quad mode is added
-        // .dq1_io     (spi_sdo1 / spi_sdi1)  // future
-        // .dq2_io     (spi_sdo2 / spi_sdi2)  // future
-        // .dq3_io     (spi_sdo3 / spi_sdi3)  // future
+        .dq_oe  ()   // unused in simulation since we have separate sdo/sdi
     );
-
-    // unused SDI lines tied off
-    assign spi_sdi1 = 1'b0;
-    assign spi_sdi2 = 1'b0;
-    assign spi_sdi3 = 1'b0;
 
 endmodule

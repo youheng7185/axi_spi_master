@@ -85,22 +85,48 @@ module spi_flash_wrapper (
     assign spi_addr_len = has_addr_i ? 6'd24 : 6'd0;
 
     // Start trigger — only pass start_i to the correct mode signal
-    always_comb begin
-        spi_rd  = 1'b0;
-        spi_wr  = 1'b0;
-        spi_qrd = 1'b0;
-        spi_qwr = 1'b0;
-        spi_drd = 1'b0;
-        if (start_i) begin
-            case (data_mode_i)
-                2'b00:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
-                2'b01:  begin spi_wr = !rd_wr_i; spi_rd = rd_wr_i; end
-                2'b10:  begin spi_drd = rd_wr_i;  spi_wr  = !rd_wr_i; end
-                2'b11:  begin spi_qwr = !rd_wr_i; spi_qrd = rd_wr_i; end
-                default: ;
-            endcase
+    // Replace the combinational always_comb block with registered versions:
+    logic spi_rd_r, spi_wr_r, spi_qrd_r, spi_qwr_r, spi_drd_r;
+
+    logic data_is_quad, data_is_dual;
+
+    always_ff @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            spi_rd_r     <= 0;  spi_wr_r  <= 0;
+            spi_qrd_r    <= 0;  spi_qwr_r <= 0;  spi_drd_r <= 0;
+            data_is_quad <= 0;  data_is_dual <= 0;
+        end else if (start_i) begin
+            spi_rd_r     <=  rd_wr_i;   // always single-line for cmd+addr
+            spi_wr_r     <= !rd_wr_i;
+            spi_qrd_r    <= 0;
+            spi_qwr_r    <= 0;
+            spi_drd_r    <= 0;
+            data_is_quad <= (data_mode_i == 2'b11);
+            data_is_dual <= (data_mode_i == 2'b10);
+        end else if (eot) begin
+            spi_rd_r     <= 0;  spi_wr_r  <= 0;
+            spi_qrd_r    <= 0;  spi_qwr_r <= 0;  spi_drd_r <= 0;
+            data_is_quad <= 0;  data_is_dual <= 0;
         end
     end
+
+    // Promote to quad/dual only when entering the data phase.
+    // spi_status[5] = DATA_TX active, spi_status[6] = DATA_RX/WAIT_EDGE active.
+    // We expose spi_status from the controller for this.
+    wire in_data_phase;
+
+    assign spi_qwr = spi_wr_r & data_is_quad & in_data_phase;
+    assign spi_qrd = spi_rd_r & data_is_quad & in_data_phase;
+    assign spi_drd = spi_rd_r & data_is_dual & in_data_phase;
+    assign spi_wr  = spi_wr_r & ~(data_is_quad & in_data_phase);
+    assign spi_rd  = spi_rd_r & ~(data_is_quad & in_data_phase) 
+                            & ~(data_is_dual & in_data_phase);
+
+    assign spi_rd  = spi_rd_r;
+    assign spi_wr  = spi_wr_r;
+    assign spi_qrd = spi_qrd_r;
+    assign spi_qwr = spi_qwr_r;
+    assign spi_drd = spi_drd_r;
     
     // -------------------------------------------------------------------------
     // Status / busy
@@ -239,7 +265,8 @@ module spi_flash_wrapper (
         .spi_sdi0(spi_sdi0),
         .spi_sdi1(spi_sdi1),
         .spi_sdi2(spi_sdi2),
-        .spi_sdi3(spi_sdi3)
+        .spi_sdi3(spi_sdi3),
+        .in_data_phase_o (in_data_phase)
     );
 
 endmodule
