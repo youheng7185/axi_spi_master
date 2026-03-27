@@ -595,34 +595,69 @@ int main(int argc, char **argv) {
               << test_fail << " failed ===\n";
 
     // // TEST: Quad Page Program (0x32) at 0x000100
-    default_inputs(dut);
-    //dut->command_i    = 0x32;
-    dut->command_i    = 0x32;
-    dut->data_mode_i  = 0b11;   // quad
-    dut->rd_wr_i      = 0;
-    dut->has_addr_i   = 1;
-    dut->addr_i       = 0x00000000;
-    dut->data_count_i = 3;
-    push_tx(dut, tfp, 0x12345678);
-    start_transfer(dut, tfp);
-    wait_status(dut, tfp);
-    clear_status(dut, tfp);
-
-    // // TEST: Read Quad Output (0x6B) — cmd+addr single, data quad
     // default_inputs(dut);
-    // dut->command_i     = 0x6B;
-    // dut->data_mode_i   = 0b11;   // quad
-    // dut->rd_wr_i       = 1;
-    // dut->has_addr_i    = 1;
-    // dut->addr_i        = 0x000100;
-    // dut->data_count_i  = 3;
-    // dut->dummy_cycle_i = 8;
+    // //dut->command_i    = 0x32;
+    // dut->command_i    = 0x32;
+    // dut->data_mode_i  = 0b11;   // quad
+    // dut->rd_wr_i      = 0;
+    // dut->has_addr_i   = 1;
+    // dut->addr_i       = 0x00000000;
+    // dut->data_count_i = 3;
+    // push_tx(dut, tfp, 0x12345678);
     // start_transfer(dut, tfp);
     // wait_status(dut, tfp);
-    // tick(20, dut, tfp);
-    // uint32_t rd = pop_rx(dut, tfp);
-    // check("Quad read back", rd, 0x12345678);
     // clear_status(dut, tfp);
+
+    std::cout << "\n[TEST 6] Page Program (0x02) — write 4 bytes to 0x000100\n";
+    {
+        // Step 1: Write Enable first
+        default_inputs(dut);
+        dut->command_i   = 0x06;
+        dut->data_mode_i = 0b00;
+        dut->has_addr_i  = 0;
+        dut->rd_wr_i     = 0;
+        start_transfer(dut, tfp);
+        wait_status(dut, tfp);
+        clear_status(dut, tfp);
+        tick(10, dut, tfp);
+
+        // Step 2: Page Program
+        default_inputs(dut);
+        dut->command_i    = 0x02;
+        dut->data_mode_i  = 0b01;  // std SPI
+        dut->rd_wr_i      = 0;     // write
+        dut->has_addr_i   = 1;
+        dut->addr_i       = 0x000100;
+        dut->data_count_i = 3;     // 4 bytes
+        dut->dummy_cycle_i= 0;
+
+        // Pre-load TX FIFO with 0xDEADBEEF
+        push_tx(dut, tfp, 0x12345678);
+
+        start_transfer(dut, tfp);
+        wait_status(dut, tfp);
+        check_bool("Page program completed", dut->status_o, true);
+
+        clear_status(dut, tfp);
+        tick(20, dut, tfp);
+    }
+
+
+    // // TEST: Read Quad Output (0x6B) — cmd+addr single, data quad
+    default_inputs(dut);
+    dut->command_i     = 0x6B;
+    dut->data_mode_i   = 0b11;   // quad
+    dut->rd_wr_i       = 1;
+    dut->has_addr_i    = 1;
+    dut->addr_i        = 0x000100;
+    dut->data_count_i  = 3;
+    dut->dummy_cycle_i = 8;
+    start_transfer(dut, tfp);
+    wait_status(dut, tfp);
+    tick(20, dut, tfp);
+    uint32_t rd = pop_rx(dut, tfp);
+    check("Quad read back", rd, 0x12345678);
+    clear_status(dut, tfp);
 
     // TEST: Read Dual Output (0x3B)
     // default_inputs(dut);
